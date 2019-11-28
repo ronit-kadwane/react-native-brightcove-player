@@ -50,6 +50,13 @@
     if (_videoId) {
         [_playbackService findVideoWithVideoID:_videoId parameters:nil completion:^(BCOVVideo *video, NSDictionary *jsonResponse, NSError *error) {
             if (video) {
+                if(self.onVideoDetails){
+                    NSDictionary *videoData = video.properties;
+                    if(videoData){
+                        self.onVideoDetails(@{@"videoProperties": videoData});
+                    }
+                }
+
                 [self.playbackController setVideos: @[ video ]];
             }
         }];
