@@ -44,4 +44,15 @@ android {
 dependencies {
     implementation 'com.facebook.react:react-native:+'
     implementation 'com.brightcove.player:exoplayer2:6.8.0'
+    implementation "com.brightcove.player:android-cast-plugin:6.8.0"
+    implementation("com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}") {
+        exclude group: "com.android.support", module: "support-v4"
+    }
+    implementation("com.android.support:mediarouter-v7:${rootProject.ext.supportLibVersion}") {
+        exclude group: "com.android.support", module: "support-v4"
+    }
+    implementation 'com.google.android.gms:play-services-cast-framework:16.1.2'
+    implementation 'com.google.android.exoplayer:extension-cast:2.7.0'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.7.0'
+    implementation 'com.google.android.exoplayer:exoplayer-ui:2.7.0'
 }

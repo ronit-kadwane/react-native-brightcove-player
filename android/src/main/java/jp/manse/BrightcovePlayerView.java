@@ -6,6 +6,9 @@ import android.util.Log;
 import android.view.SurfaceView;
 import android.widget.RelativeLayout;
 
+import com.brightcove.cast.GoogleCastComponent;
+import com.brightcove.cast.GoogleCastEventType;
+import com.brightcove.cast.controller.BrightcoveCastMediaManager;
 import com.brightcove.player.display.ExoPlayerVideoDisplayComponent;
 import com.brightcove.player.edge.Catalog;
 import com.brightcove.player.edge.OfflineCatalog;
@@ -15,6 +18,7 @@ import com.brightcove.player.event.EventEmitter;
 import com.brightcove.player.event.EventListener;
 import com.brightcove.player.event.EventType;
 import com.brightcove.player.mediacontroller.BrightcoveMediaController;
+import com.brightcove.player.model.DeliveryType;
 import com.brightcove.player.model.Video;
 import com.brightcove.player.view.BrightcoveExoPlayerVideoView;
 import com.facebook.react.bridge.Arguments;
@@ -22,6 +26,7 @@ import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.google.android.exoplayer2.C;
@@ -37,6 +42,7 @@ import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class BrightcovePlayerView extends RelativeLayout implements LifecycleEventListener {
@@ -74,6 +80,10 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
         ViewCompat.setTranslationZ(this, 9999);
 
         EventEmitter eventEmitter = this.playerVideoView.getEventEmitter();
+
+        BrightcoveCastMediaManager brightcoveCastMediaManager = new BrightcoveCastMediaManager(this.context, eventEmitter);
+        final GoogleCastComponent googleCastComponent = new GoogleCastComponent(eventEmitter, this.context, brightcoveCastMediaManager);
+
         eventEmitter.on(EventType.VIDEO_SIZE_KNOWN, new EventListener() {
             @Override
             public void processEvent(Event e) {
@@ -174,6 +184,19 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
                 reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcovePlayerView.this.getId(), BrightcovePlayerManager.EVENT_UPDATE_BUFFER_PROGRESS, event);
             }
         });
+
+        eventEmitter.on(GoogleCastEventType.CAST_SESSION_STARTED, new EventListener() {
+            @Override
+            public void processEvent(Event e) {
+//                googleCastComponent.setAutoPlay(true);
+            }
+        });
+        eventEmitter.on(GoogleCastEventType.CAST_SESSION_ENDED, new EventListener() {
+            @Override
+            public void processEvent(Event e) {
+                Log.i("TAG", "CAST_SESSION_ENDED");
+            }
+        });
     }
 
     public void setPolicyKey(String policyKey) {
@@ -251,8 +274,8 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
     }
 
     //We need to stop the player to avoid a potential memory leak.
-    public void stopPlayback(){
-        if(this.playerVideoView != null){
+    public void stopPlayback() {
+        if (this.playerVideoView != null) {
             this.playerVideoView.stopPlayback();
         }
     }
@@ -330,6 +353,38 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
             @Override
             public void onVideo(Video video) {
                 playVideo(video);
+                WritableMap event = Arguments.createMap();
+                WritableMap videoPropertiesMap = Arguments.createMap();
+                WritableMap highQualitySourceMap= Arguments.createMap();
+                WritableMap lowQualitySourceMap= Arguments.createMap();
+
+                Iterator<Map.Entry<String, Object>> videoProperties = video.getProperties().entrySet().iterator();
+                while(videoProperties.hasNext()) {
+                    Map.Entry<String, Object> entry = videoProperties.next();
+                    Log.i("TAG", "KEY :: " + entry.getKey() + " VALUE :: "+entry.getValue());
+                    videoPropertiesMap.putString(entry.getKey(), entry.getValue().toString());
+                }
+
+                Iterator<Map.Entry<String, Object>> highQualitySourceProperties = video.findHighQualitySource(DeliveryType.MP4).getProperties().entrySet().iterator();
+                while(highQualitySourceProperties.hasNext()) {
+                    Map.Entry<String, Object> entry = highQualitySourceProperties.next();
+                    Log.i("TAG", "KEY :: " + entry.getKey() + " VALUE :: "+entry.getValue());
+                    highQualitySourceMap.putString(entry.getKey(), entry.getValue().toString());
+                }
+
+                Iterator<Map.Entry<String, Object>> lowQualitySourceProperties = video.findLowQualitySource(DeliveryType.MP4).getProperties().entrySet().iterator();
+                while(lowQualitySourceProperties.hasNext()) {
+                    Map.Entry<String, Object> entry = lowQualitySourceProperties.next();
+                    Log.i("TAG", "KEY :: " + entry.getKey() + " VALUE :: "+entry.getValue());
+                    lowQualitySourceMap.putString(entry.getKey(), entry.getValue().toString());
+                }
+
+                event.putMap("videoProperties", videoPropertiesMap);
+                event.putMap("highQualitySource", highQualitySourceMap);
+                event.putMap("lowQualitySource", lowQualitySourceMap);
+
+                ReactContext reactContext = (ReactContext) BrightcovePlayerView.this.getContext();
+                reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcovePlayerView.this.getId(), BrightcovePlayerManager.EVENT_VIDEO_PROPERTIES, event);
             }
         };
         this.catalog = new Catalog(this.playerVideoView.getEventEmitter(), this.accountId, this.policyKey);
