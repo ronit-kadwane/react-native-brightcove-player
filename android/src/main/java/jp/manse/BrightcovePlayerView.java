@@ -7,7 +7,6 @@ import android.view.SurfaceView;
 import android.widget.RelativeLayout;
 
 import com.brightcove.cast.GoogleCastComponent;
-import com.brightcove.cast.GoogleCastEventType;
 import com.brightcove.cast.controller.BrightcoveCastMediaManager;
 import com.brightcove.player.display.ExoPlayerVideoDisplayComponent;
 import com.brightcove.player.edge.Catalog;
@@ -26,7 +25,6 @@ import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.google.android.exoplayer2.C;
@@ -184,19 +182,6 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
                 reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(BrightcovePlayerView.this.getId(), BrightcovePlayerManager.EVENT_UPDATE_BUFFER_PROGRESS, event);
             }
         });
-
-        eventEmitter.on(GoogleCastEventType.CAST_SESSION_STARTED, new EventListener() {
-            @Override
-            public void processEvent(Event e) {
-//                googleCastComponent.setAutoPlay(true);
-            }
-        });
-        eventEmitter.on(GoogleCastEventType.CAST_SESSION_ENDED, new EventListener() {
-            @Override
-            public void processEvent(Event e) {
-                Log.i("TAG", "CAST_SESSION_ENDED");
-            }
-        });
     }
 
     public void setPolicyKey(String policyKey) {
@@ -277,6 +262,7 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
     public void stopPlayback() {
         if (this.playerVideoView != null) {
             this.playerVideoView.stopPlayback();
+            this.playerVideoView.clear();
         }
     }
 
@@ -361,21 +347,18 @@ public class BrightcovePlayerView extends RelativeLayout implements LifecycleEve
                 Iterator<Map.Entry<String, Object>> videoProperties = video.getProperties().entrySet().iterator();
                 while(videoProperties.hasNext()) {
                     Map.Entry<String, Object> entry = videoProperties.next();
-                    Log.i("TAG", "KEY :: " + entry.getKey() + " VALUE :: "+entry.getValue());
                     videoPropertiesMap.putString(entry.getKey(), entry.getValue().toString());
                 }
 
                 Iterator<Map.Entry<String, Object>> highQualitySourceProperties = video.findHighQualitySource(DeliveryType.MP4).getProperties().entrySet().iterator();
                 while(highQualitySourceProperties.hasNext()) {
                     Map.Entry<String, Object> entry = highQualitySourceProperties.next();
-                    Log.i("TAG", "KEY :: " + entry.getKey() + " VALUE :: "+entry.getValue());
                     highQualitySourceMap.putString(entry.getKey(), entry.getValue().toString());
                 }
 
                 Iterator<Map.Entry<String, Object>> lowQualitySourceProperties = video.findLowQualitySource(DeliveryType.MP4).getProperties().entrySet().iterator();
                 while(lowQualitySourceProperties.hasNext()) {
                     Map.Entry<String, Object> entry = lowQualitySourceProperties.next();
-                    Log.i("TAG", "KEY :: " + entry.getKey() + " VALUE :: "+entry.getValue());
                     lowQualitySourceMap.putString(entry.getKey(), entry.getValue().toString());
                 }
 
